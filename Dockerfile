@@ -22,7 +22,7 @@ WORKDIR /app
 
 # Copy the published app from the build stage
 COPY --from=build /app/out .
-
+COPY appsettings.json /app/
 # Expose the port your app will run on
 EXPOSE 8080
 
