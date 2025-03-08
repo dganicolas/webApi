@@ -7,6 +7,4 @@ public class PlayerContext : DbContext
         : base(options)
     {
     }
-
-    public DbSet<Player> Players { get; set; } = null!;
 }

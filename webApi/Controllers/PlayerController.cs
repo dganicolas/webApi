@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 using webApi.model;
 
 namespace webApi.Controllers
@@ -13,95 +9,67 @@ namespace webApi.Controllers
     [ApiController]
     public class PlayerController : ControllerBase
     {
-        private readonly PlayerContext _context;
-
-        public PlayerController(PlayerContext context)
+        private readonly IMongoCollection<Player> _playersCollection;
+        public PlayerController(IOptions<PlayerDatabaseSettings> playerDatabaseSettings)
         {
-            _context = context;
+            var settings = playerDatabaseSettings.Value;
+            Console.WriteLine(settings.ConnectionString);
+            var mongoClient = new MongoClient(settings.ConnectionString);
+            var mongoDatabase = mongoClient.GetDatabase(settings.DatabaseName);
+            _playersCollection = mongoDatabase.GetCollection<Player>(settings.PlayersCollectionName);
         }
 
         // GET: api/Player
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Player>>> GetPlayers()
         {
-            return await _context.Players.ToListAsync();
+            // Obtener los jugadores ordenados por la puntuación y limitar el resultado a los 5 primeros
+            var topPlayers = await _playersCollection
+                .Find(_ => true)
+                .SortByDescending(p => p.MaxScore) // Ordenar por puntuación
+                .Limit(5) // Limitar a los 5 jugadores con mayores puntuaciones
+                .ToListAsync(); // Obtener la lista de jugadores
+
+            return Ok(topPlayers); // Retornar la lista de jugadores en la respuesta
         }
 
-        // GET: api/Player/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Player>> GetPlayer(long id)
+        // PUT: api/anadirPlayer
+        [HttpPut]
+        public async Task<IActionResult> PutPlayer(Player player)
         {
-            var player = await _context.Players.FindAsync(id);
-
-            if (player == null)
+            // Validaciones previas
+            if (string.IsNullOrWhiteSpace(player.Name))
             {
-                return NotFound();
+                return BadRequest("El nombre del jugador no puede ser nulo ni vacío.");
             }
 
-            return player;
-        }
-
-        // PUT: api/Player/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutPlayer(long id, Player player)
-        {
-            if (id != player.Id)
+            // Si la puntuación es nula, asigna un valor de 0
+            if (player.MaxScore == null)
             {
-                return BadRequest();
+                player.MaxScore = 0;
             }
 
-            _context.Entry(player).State = EntityState.Modified;
+            // Buscar si el jugador existe en la base de datos
+            var existingPlayer = await _playersCollection
+                .Find(p => p.Name == player.Name)
+                .FirstOrDefaultAsync();
 
-            try
+            if (existingPlayer != null)
             {
-                await _context.SaveChangesAsync();
+                // Si existe, actualizamos la puntuación
+                existingPlayer.MaxScore = player.MaxScore;
+
+                // Actualizar el jugador en la colección MongoDB
+                await _playersCollection.ReplaceOneAsync(p => p.Name == player.Name, existingPlayer);
             }
-            catch (DbUpdateConcurrencyException)
+            else
             {
-                if (!PlayerExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/Player
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Player>> PostPlayer(Player player)
-        {
-            _context.Players.Add(player);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetPlayer", new { id = player.Id }, player);
-        }
-
-        // DELETE: api/Player/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletePlayer(long id)
-        {
-            var player = await _context.Players.FindAsync(id);
-            if (player == null)
-            {
-                return NotFound();
+                // Si no existe, agregamos el nuevo jugador
+                await _playersCollection.InsertOneAsync(player);
             }
 
-            _context.Players.Remove(player);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool PlayerExists(long id)
-        {
-            return _context.Players.Any(e => e.Id == id);
+            // Retornamos el jugador insertado o actualizado
+            return Ok(player);
         }
     }
 }

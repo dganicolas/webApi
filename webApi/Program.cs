@@ -1,14 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using webApi.model;
-
+using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-
-builder.Services.AddControllers();
-builder.Services.AddDbContext<PlayerContext>(opt =>
-    opt.UseInMemoryDatabase("Players"));
+builder.Services.Configure<PlayerDatabaseSettings>(
+    builder.Configuration.GetSection("PlayerDatabaseSettings"));
+builder.Services.AddControllers()    .AddJsonOptions(
+    options => options.JsonSerializerOptions.PropertyNamingPolicy = null);;
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
