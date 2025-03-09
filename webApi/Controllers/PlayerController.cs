@@ -13,7 +13,6 @@ namespace webApi.Controllers
         public PlayerController(IOptions<PlayerDatabaseSettings> playerDatabaseSettings)
         {
             var settings = playerDatabaseSettings.Value;
-            Console.WriteLine(settings.ConnectionString);
             var mongoClient = new MongoClient(settings.ConnectionString);
             var mongoDatabase = mongoClient.GetDatabase(settings.DatabaseName);
             _playersCollection = mongoDatabase.GetCollection<Player>(settings.PlayersCollectionName);
