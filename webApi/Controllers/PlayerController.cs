@@ -36,17 +36,13 @@ namespace webApi.Controllers
         [HttpPost]
         public async Task<IActionResult> PutPlayer(Player player)
         {
+            Console.WriteLine(player.ToString());
             // Validaciones previas
             if (string.IsNullOrWhiteSpace(player.Name))
             {
                 return BadRequest("El nombre del jugador no puede ser nulo ni vacío.");
             }
-
-            // Si la puntuación es nula, asigna un valor de 0
-            if (player.MaxScore == null)
-            {
-                player.MaxScore = 0;
-            }
+            
 
             // Buscar si el jugador existe en la base de datos
             var existingPlayer = await _playersCollection
@@ -57,7 +53,7 @@ namespace webApi.Controllers
             {
                 // Si existe, actualizamos la puntuación
                 existingPlayer.MaxScore = player.MaxScore;
-
+                
                 // Actualizar el jugador en la colección MongoDB
                 await _playersCollection.ReplaceOneAsync(p => p.Name == player.Name, existingPlayer);
             }

@@ -17,4 +17,9 @@ public class Player
     [BsonElement("MaxScore")]
     [JsonPropertyName("MaxScore")]
     public int? MaxScore { get; set; }
+    
+    public override string ToString()
+    {
+        return $"Player(Id: {Id}, Name: {Name}, MaxScore: {MaxScore})";
+    }
 }
