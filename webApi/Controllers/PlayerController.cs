@@ -32,7 +32,7 @@ namespace webApi.Controllers
             return Ok(topPlayers); // Retornar la lista de jugadores en la respuesta
         }
 
-        // PUT: api/anadirPlayer
+        // POST: api/anadirPlayer
         [HttpPost]
         public async Task<IActionResult> PutPlayer(Player player)
         {
