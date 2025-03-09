@@ -36,7 +36,6 @@ namespace webApi.Controllers
         [HttpPut]
         public async Task<IActionResult> PutPlayer(Player player)
         {
-            // Validaciones previas
             if (string.IsNullOrWhiteSpace(player.Name))
             {
                 return BadRequest("El nombre del jugador no puede ser nulo ni vacío.");
@@ -48,26 +47,10 @@ namespace webApi.Controllers
                 player.MaxScore = 0;
             }
 
-            // Buscar si el jugador existe en la base de datos
-            var existingPlayer = await _playersCollection
-                .Find(p => p.Name == player.Name)
-                .FirstOrDefaultAsync();
+            // Insertamos el jugador directamente en la base de datos
+            await _playersCollection.InsertOneAsync(player);
 
-            if (existingPlayer != null)
-            {
-                // Si existe, actualizamos la puntuación
-                existingPlayer.MaxScore = player.MaxScore;
-
-                // Actualizar el jugador en la colección MongoDB
-                await _playersCollection.ReplaceOneAsync(p => p.Name == player.Name, existingPlayer);
-            }
-            else
-            {
-                // Si no existe, agregamos el nuevo jugador
-                await _playersCollection.InsertOneAsync(player);
-            }
-
-            // Retornamos el jugador insertado o actualizado
+            // Devolvemos el jugador que fue insertado
             return Ok(player);
         }
     }
