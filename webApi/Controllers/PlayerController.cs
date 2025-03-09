@@ -33,7 +33,7 @@ namespace webApi.Controllers
         }
 
         // PUT: api/anadirPlayer
-        [HttpPut]
+        [HttpPost]
         public async Task<IActionResult> PutPlayer(Player player)
         {
             // Validaciones previas
